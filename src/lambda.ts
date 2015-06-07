@@ -150,7 +150,7 @@ export class Function extends Expression {
   }
 
   toString():string {
-    return '\\' + this.argStr + '.' + this.body + '';
+    return '\\' + this.argStr + '.' + this.body.toString() + '';
   }
 
 }
