@@ -1,0 +1,107 @@
+so can do files and stuff
+cmd line interpreter
+can run scripts and show output
+also can convert scripts into latex markup to produce documents (don't have to do actual compilation, just output .tex files)
+http://stackoverflow.com/questions/202605/repeat-string-javascript
+http://en.wikipedia.org/wiki/Church_encoding#Signed_numbers
+http://www.allisons.org/ll/FP/Lambda/Interpreter/
+
+// a variable can be any lowercase letter, or any number surrounded by square brackets
+var: [a-z]|"["[0-9]+"]"
+// a name can contain uppercase letters, numbers, and the following characters: _*^%$!|+-~
+name: [A-Z0-9_*\^%$!|+\-~]+
+// a function can be either a name or the \ character followed by a variable followed by a . character followed by an expression
+func: name|"\"var+"."" "?expr
+// an application is two expressions, each surrounded in optional parentheses
+app: "("?" "?expr1" "?")"?" "?"("?" "?expr2" "?")"?
+// an expression is a variable, a function, or an application
+expr: var|func|app
+// a scheme name can contain lowercase letters only
+scheme_name: [a-z]+
+name_pattern: ...
+scheme_cond: ...
+scheme_result: ...
+scheme_script: "{" (scheme_cond":" scheme_result";")* scheme_result "}"
+script_name: ...
+
+// SEMICOLONS?
+script: (script_statement "\n")*
+
+script_statement: {
+// saves expr as name
+// outputs "name := expr" ("name \defined expr")
+def: name ":=" expr
+// naming scheme
+// outputs nothing?
+// textual input, outputs text, rechecks any schemes for matches again, once no schemes match, can evaluate as expression
+scheme: "<"scheme_script":" name_pattern">" ":=" scheme_script
+// shows true or false if equiv
+// outputs "expr1 = expr2" or "expr1 != expr2" ("expr1 \ne expr2")
+test: expr "=?" expr
+// reduce and name
+// outputs "expr -> name" ("expr \to name")
+redux: expr "#"
+// include defs from script file
+// outputs the output of each def, output optional?
+import: "@import" "\""script_name"\""
+comment: "//"[^\n]*|"/*".*"*/"
+}
+
+
+
+GE := \xy.Z (x P y)
+LE := \xy.Z (y P x)
+
+LT := NOT GE
+GT := NOT LE
+
+<nat: ([0-9]+)> := { \fx.<"f(" * +$1>x<")" * +$1> }
+<int: (-)?($nat$)Z> := {
+	$1: PAIR $2 0;
+	PAIR 0 $2
+}
+
+NTOZ := \n.PAIR n 0
+
+<add: (?:(Z|Q)(?:_))?ADD> := {
+	$1 == "I": \xy.PAIR (ADD (FIRST x) (FIRST y)) (ADD (SECOND x) (SECOND y));
+	$1 == "R": \xy.PAIR (ZADD (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y));
+	\xy.x S y
+}
+<lt: (Z|Q)?LT> := { NOT $1GE }
+
+ISUB := \xy.PAIR (SUB (FIRST x) (FIRST y)) (SUB (SECOND x) (SECOND y))
+ISUB 4Z 6Z =? -2Z
+
+ZDIV :=
+
+ZFACT := Y \rn.Z n 1 (MULT n (P n))
+
+<rat: ($int$)\|($nat$)> := {
+	PAIR $1 $2
+}
+
+ZTOQ := \z.PAIR z 1Z
+NTOQ := \n.ZTOQ (NTOZ n)
+
+QSUB := \xy.PAIR (ZSUB (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y))
+QMULT := \xy.PAIR (ZMULT (FIRST x) (FIRST y)) (ZMULT (SECOND x) (SECOND y))
+QDIV := \xy.PAIR (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (FIRST y))
+
+NIL := \x.T
+
+NULL := \x.x (\yz.F)
+LFIRST := \x.FIRST x
+
+LEN := Y \rx.NULL x 0 (r SECOND x)
+
+/*
+NULL (0 (1 (2 NIL)))
+(0 (1 2)) (\xy.F)
+(\xy.F) 0 (1 (2 NIL))
+F
+
+NULL NIL
+NIL (\xy.F)
+T
+*/
