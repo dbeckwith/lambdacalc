@@ -1,4 +1,5 @@
-# lambdacalc [![Build Status](https://secure.travis-ci.org/dbeckwith/lambdacalc.png?branch=master)](http://travis-ci.org/dbeckwith/lambdacalc)[![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com/)
+# lambdacalc
+[![Build Status](https://secure.travis-ci.org/dbeckwith/lambdacalc.png?branch=master)](http://travis-ci.org/dbeckwith/lambdacalc)&nbsp;[![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com/)
 
 Lambda Calculus reducer tool.
 
