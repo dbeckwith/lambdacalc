@@ -41,6 +41,7 @@
     "grunt-ts-clean": "~0.2.0",
     "grunt-tsd": "~0.1.0",
     "grunt-tslint": "~2.0.0",
+    "nodeunit": "~0.9.1",
     "tslint": "~2.0.0"
   },
   "keywords": [],
