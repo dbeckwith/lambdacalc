@@ -47,39 +47,111 @@ import: "@import" "\""script_name"\""
 comment: "//"[^\n]*|"/*".*"*/"
 }
 
+directives: @name args...
+takes up whole line, so can have any kind of chars
+@import script_name
+@verb+
+@verb++
+@verb+++...
+@verb-
+@verb--
+@verb---...
+level 1: expansion steps
+level 2: expansion steps, etc.
+
+having a line with just an expression will just expand that expression, only really useful in verbose mode
+
+// TODO: should be able to show expansion steps
 
 
-GE := \xy.Z (x P y)
-LE := \xy.Z (y P x)
 
+
+
+
+/* 
+ * church numerals can be defined recursively:
+ * <nat: (\d+)> := {
+ *  $1 == 0: \fx.x // 0 = x
+ *  \fx.f (<+$1 - 1> f x) // n = f(f^(n-1)(x))
+ * }
+ * but this definition expands very slowly:
+ * > @verb+
+ * > 3
+ *   @: 3
+ *   1: \fx.f (2 f x)
+ *   2: \fx.f ((\fx.f (1 f x)) f x)
+ *   3: \fx.f ((\fx.f ((\fx.f (0 f x)) f x)) f x)
+ * # 4: \fx.f ((\fx.f ((\fx.f ((\fx.x) f x)) f x)) f x)
+ *   5: \fx.f ((\fx.f ((\fx.f ((\x.x) x)) f x)) f x)
+ *   6: \fx.f ((\fx.f ((\fx.f x) f x)) f x)
+ *   7: \fx.f ((\fx.f ((\x.f x) x)) f x)
+ *   8: \fx.f ((\fx.f (f x)) f x)
+ *   9: \fx.f ((\x.f (f x)) x)
+ *   10: \fx.f (f (f x))
+ * [10 steps, fully reduced]
+ * 
+ * or, in a faster string-based iterative generator approach:
+ */
+<nat: (\d+)> := \fx.<"f (" * +$1>x<")" * +$1> // n = f^n(x)
+/* 
+ * > @verb+
+ * > 3
+ *   @: 3
+ * # 1: \fx.f (f (f x))
+ * [1 step, fully reduced]
+ */
+
+SUCC := \nfx.f (n f x) // f^(n+1)(x) = f(f^n(x))
+ADD := \mn.m f (n f x) // f^(m+n)(x) = f^m(f^n(x))
+MULT := \mnf.m (n f) // f^(m*n)(x) = (f^n)^m(x)
+EXP := \mn.n m // n f x = f^n(x) => m^n f = n m f
+PRED := \nfx.n (\gh.h (g f)) (\u.x) (\u.u)
+SUBT := \mn.(n PRED) m
+
+T := \ab.a
+F := \ab.b
+
+AND := \pq.p q F
+OR := \pq.p T q
+NOT := \p.p F T
+XOR := \pq.p (NOT q) q
+
+IS_ZERO := \n.n (\x.F) T
+LE := \mn.IS_ZERO (SUBT m n)
+GE := \mn.IS_ZERO (SUBT n m)
+EQ := \mn.AND (LEQ n m) (GEQ n m)
 LT := NOT GE
 GT := NOT LE
 
-<nat: ([0-9]+)> := { \fx.<"f(" * +$1>x<")" * +$1> }
+PAIR := \xyz.z x y
+FIRST := \p.p T
+SECOND := \p.p F
+
+Y := \r.(\x.r (x x)) (\x.r (x x))
+
+
 <int: (-)?($nat$)Z> := {
-	$1: PAIR $2 0;
-	PAIR 0 $2
+    $1: PAIR $2 0;
+    PAIR 0 $2
 }
 
 NTOZ := \n.PAIR n 0
 
 <add: (?:(Z|Q)(?:_))?ADD> := {
-	$1 == "I": \xy.PAIR (ADD (FIRST x) (FIRST y)) (ADD (SECOND x) (SECOND y));
-	$1 == "R": \xy.PAIR (ZADD (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y));
-	\xy.x S y
+    $1 == "I": \xy.PAIR (ADD (FIRST x) (FIRST y)) (ADD (SECOND x) (SECOND y));
+    $1 == "R": \xy.PAIR (ZADD (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y));
+    \xy.x S y
 }
-<lt: (Z|Q)?LT> := { NOT $1GE }
+<lt: (Z|Q)?LT> := NOT $1GE
 
 ISUB := \xy.PAIR (SUB (FIRST x) (FIRST y)) (SUB (SECOND x) (SECOND y))
 ISUB 4Z 6Z =? -2Z
 
-ZDIV :=
+ZDIV := 
 
 ZFACT := Y \rn.Z n 1 (MULT n (P n))
 
-<rat: ($int$)\|($nat$)> := {
-	PAIR $1 $2
-}
+<rat: ($int$)\|($nat$)> := PAIR $1 $2
 
 ZTOQ := \z.PAIR z 1Z
 NTOQ := \n.ZTOQ (NTOZ n)
