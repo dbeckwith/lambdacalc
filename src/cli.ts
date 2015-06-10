@@ -9,13 +9,9 @@ import lambdacalc = require('./lambdacalc');
 import _ = require('lodash');
 
 function cli(args:string[]):void {
-  console.log(_.repeat(lambdacalc.echo(args[2]), 4));
-
-  console.log(new lambda.Variable(0).toString());
-  var e:lambda.Function = new lambda.Function(0, new lambda.Function(1, new lambda.Application(new lambda.Variable(0),
-    new lambda.Function(0, new lambda.Variable(0)))));
-  console.log(e.toString());
-  console.log(e.bindAll().toString());
+  _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
+    console.log(name + ': ' + f.toString());
+  });
 }
 
 export = cli;

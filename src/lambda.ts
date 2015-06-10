@@ -10,8 +10,17 @@ export class Expression {
 
   private _parent:Expression;
 
-  protected static intToChar(i:number):string {
-    return String.fromCharCode(i + 'a'.charCodeAt(0));
+  public static idToName(i:number):string {
+    if (i < 3) {
+      return String.fromCharCode(i + 'x'.charCodeAt(0));
+    }
+    if (i < 6) {
+      return String.fromCharCode(i - 3 + 'u'.charCodeAt(0));
+    }
+    if (i < 26) {
+      return String.fromCharCode(i - 6 + 'a'.charCodeAt(0));
+    }
+    return '[' + (i - 26) + ']';
   }
 
   constructor() {
@@ -22,50 +31,63 @@ export class Expression {
     return this._parent;
   }
 
-  /* tslint:disable:typedef */
-  set parent(parent:Expression) {
-    /* tslint:enable:typedef */
+  set parent(parent:Expression)/* tslint:disable:typedef */ {/* tslint:enable:typedef */
     this._parent = parent;
   }
 
-  private walk(vars:(v:Variable) => void, funcs:(f:Function) => void, apps:(a:Application) => void):void {
-    function recurse(expr:Expression):void {
+  walk(vars:(v:Variable, depth:number) => void,
+       funcs:(f:Function, depth:number) => boolean,
+       apps:(a:Application, depth:number) => boolean):void {
+    function recurse(expr:Expression, depth:number):void {
       if (expr instanceof Variable) {
         if (vars) {
-          vars(expr);
+          vars(expr, depth);
         }
       }
       else if (expr instanceof Function) {
         if (funcs) {
-          funcs(expr);
+          if (!funcs(expr, depth)) {
+            return;
+          }
+          depth++;
         }
-        recurse(expr.body);
+        recurse(expr.body, depth);
       }
       else if (expr instanceof Application) {
         if (apps) {
-          apps(expr);
+          if (!apps(expr, depth)) {
+            return;
+          }
+          depth++;
         }
-        _.each(expr.exprs, recurse);
+        _.each(expr.exprs, (e:Expression) => {
+          recurse(e, depth);
+        });
       }
     }
 
-    recurse(this);
+    recurse(this, 0);
+  }
+
+  findFirst<T extends Expression>(T:new(...args:any[]) => T, test:(e:T) => boolean):T {
+    var e:Expression = this;
+    while (e !== null) {
+      if (e instanceof T && test(<T>e)) {
+        return <T>e;
+      }
+      e = e.parent;
+    }
   }
 
   bindAll():Expression {
     var expr:Expression = this;
+    expr.walk(null, (f:Function, depth:number) => {
+      f.id = depth;
+      return true;
+    }, null);
     expr.walk((v:Variable) => {
-      var e:Expression = v;
-      while (e !== null) {
-        if (e instanceof Function) {
-          var f:Function = e;
-          if (f.arg === v.index) {
-            v.bind(f);
-            break;
-          }
-        }
-        e = e.parent;
-      }
+      v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
+      return true;
     }, null, null);
     return expr;
   }
@@ -107,7 +129,7 @@ export class Variable extends Expression {
   }
 
   toString():string {
-    return this.isBound ? this._binder.argStr : Expression.intToChar(this.index) + '*';
+    return this.isBound ? this._binder.argStr : this.index + '*';
   }
 
 }
@@ -119,14 +141,20 @@ export class Function extends Expression {
   private _id:number;
   private _arg:number;
   private _body:Expression;
+  private _prefferedName:string;
 
-  constructor(arg:number, body:Expression) {
+  constructor(arg:number, body:Expression, prefferedName?:string) {
     super();
     this._id = Function.CURR_ID++;
     this._arg = arg;
     this._body = body;
+    this._prefferedName = prefferedName;
 
     this._body.parent = this;
+  }
+
+  set id(id:number)/* tslint:disable:typedef */ {/* tslint:enable:typedef */
+    this._id = id;
   }
 
   get id():number {
@@ -138,7 +166,7 @@ export class Function extends Expression {
   }
 
   get argStr():string {
-    return this.id + '';
+    return this._prefferedName || Expression.idToName(this.id);
   }
 
   get body():Expression {
@@ -150,7 +178,17 @@ export class Function extends Expression {
   }
 
   toString():string {
-    return '\\' + this.argStr + '.' + this.body.toString() + '';
+    var args:string = '';
+    var body:string;
+    this.walk(null, (f:Function) => {
+      args += f.argStr;
+      if (!(f.body instanceof Function)) {
+        body = f.body.toString();
+        return false;
+      }
+      return true;
+    }, null);
+    return '\\' + args + '.' + body + '';
   }
 
 }
@@ -183,7 +221,19 @@ export class Application extends Expression {
   }
 
   toString():string {
-    return _.chain(this.exprs).map((expr:Expression) => '(' + expr + ')').reduce((a:string, b:string) => a + b);
+    /*
+     var paren1 = this.expr1 instanceof Function && !(useNames && (this.expr1.hasName() ||
+     (useLatex ? this.expr1.hasLatexName() : false)));
+     var paren2 = (this.expr2 instanceof Function && !(useNames && (this.expr2.hasName() ||
+     (useLatex ? this.expr2.hasLatexName() : false)))) || this.expr2 instanceof Application;
+     */
+    var parens:boolean[] = [
+      this.exprs[0] instanceof Function,
+      this.exprs[1] instanceof Function || this.exprs[1] instanceof Application
+    ];
+    return _.chain(this.exprs)
+      .map((expr:Expression, i:number) => parens[i] ? '(' + expr.toString() + ')' : expr.toString())
+      .reduce((a:string, b:string) => a + ' ' + b);
   }
 
 }

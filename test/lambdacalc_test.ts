@@ -28,7 +28,9 @@ import lambdacalc = require('../src/lambdacalc');
  */
 
 export var test:nodeunit.ITestBody = function (test:nodeunit.Test):void {
-  test.expect(1);
-  test.equal(lambdacalc.echo('test'), 'test', 'should echo "test"');
+  test.equal(lambdacalc.stdFuncs['0'].toString(), '\\fx.x');
+  test.equal(lambdacalc.stdFuncs['1'].toString(), '\\fx.f x');
+  test.equal(lambdacalc.stdFuncs['2'].toString(), '\\fx.f (f x)');
+  test.equal(lambdacalc.stdFuncs['Y'].toString(), '\\r.(\\x.r (x x)) (\\x.r (x x))');
   test.done();
 };
