@@ -41,12 +41,12 @@ export class Expression {
     function recurse(expr:Expression, depth:number):void {
       if (expr instanceof Variable) {
         if (vars) {
-          vars(expr, depth);
+          vars(<Variable>expr, depth);
         }
       }
       else if (expr instanceof Function) {
         if (funcs) {
-          if (!funcs(expr, depth)) {
+          if (!funcs(<Function>expr, depth)) {
             return;
           }
           depth++;
@@ -55,7 +55,7 @@ export class Expression {
       }
       else if (expr instanceof Application) {
         if (apps) {
-          if (!apps(expr, depth)) {
+          if (!apps(<Application>expr, depth)) {
             return;
           }
           depth++;
@@ -86,10 +86,30 @@ export class Expression {
       return true;
     }, null);
     expr.walk((v:Variable) => {
-      v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
+      if (!v.isBound) {
+        v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
+      }
       return true;
     }, null, null);
     return expr;
+  }
+
+  replace(binder:Function, replacement:Expression):Expression {
+    if (this instanceof Variable) {
+      if ((<Variable>this).binder === binder) {
+        return replacement;
+      }
+      return this.copy();
+    }
+    else if (this instanceof Function) {
+      var f:Function = <Function>this;
+      return new Function(f.arg, f.body.replace(binder, replacement));
+    }
+    else if (this instanceof Application) {
+      var a:Application = <Application>this;
+      var newExprs:Expression[] = _.map(a.exprs, (expr:Expression) => expr.replace(binder, replacement));
+      return new Application(newExprs[0], newExprs[1]);
+    }
   }
 
   copy():Expression {
@@ -116,11 +136,18 @@ export class Variable extends Expression {
     return this._index;
   }
 
+  get binder():Function {
+    return this._binder;
+  }
+
   get isBound():boolean {
     return this._binder !== null;
   }
 
   bind(binder:Function):void {
+    if (!binder) {
+      binder = null;
+    }
     this._binder = binder;
   }
 
@@ -173,6 +200,10 @@ export class Function extends Expression {
     return this._body;
   }
 
+  applyExpr(expr:Expression):Expression {
+    return this.body.replace(this, expr);
+  }
+
   copy():Expression {
     return new Function(this.arg, this.body.copy(), this._preferredName);
   }
@@ -197,9 +228,9 @@ export class Application extends Expression {
 
   private _exprs:Expression[];
 
-  constructor(exprA:Expression, exprB:Expression) {
+  constructor(...exprs:Expression[]) {
     super();
-    this._exprs = [exprA, exprB];
+    this._exprs = exprs;
 
     _.each(this._exprs, (expr:Expression) => expr.parent = this);
   }
@@ -231,7 +262,7 @@ export class Application extends Expression {
       this.exprs[0] instanceof Function,
       this.exprs[1] instanceof Function || this.exprs[1] instanceof Application
     ];
-    return _.chain(this.exprs)
+    return _(this.exprs)
       .map((expr:Expression, i:number) => parens[i] ? '(' + expr.toString() + ')' : expr.toString())
       .reduce((a:string, b:string) => a + ' ' + b);
   }
