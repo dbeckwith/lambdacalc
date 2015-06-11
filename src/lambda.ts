@@ -141,14 +141,14 @@ export class Function extends Expression {
   private _id:number;
   private _arg:number;
   private _body:Expression;
-  private _prefferedName:string;
+  private _preferredName:string;
 
-  constructor(arg:number, body:Expression, prefferedName?:string) {
+  constructor(arg:number, body:Expression, preferredName?:string) {
     super();
     this._id = Function.CURR_ID++;
     this._arg = arg;
     this._body = body;
-    this._prefferedName = prefferedName;
+    this._preferredName = preferredName;
 
     this._body.parent = this;
   }
@@ -166,7 +166,7 @@ export class Function extends Expression {
   }
 
   get argStr():string {
-    return this._prefferedName || Expression.idToName(this.id);
+    return this._preferredName || Expression.idToName(this.id);
   }
 
   get body():Expression {
@@ -174,12 +174,12 @@ export class Function extends Expression {
   }
 
   copy():Expression {
-    return new Function(this.arg, this.body.copy());
+    return new Function(this.arg, this.body.copy(), this._preferredName);
   }
 
   toString():string {
     var args:string = '';
-    var body:string;
+    var body:string = '[error]';
     this.walk(null, (f:Function) => {
       args += f.argStr;
       if (!(f.body instanceof Function)) {
