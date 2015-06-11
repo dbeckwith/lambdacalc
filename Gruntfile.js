@@ -139,6 +139,6 @@ module.exports = function (grunt) {
   grunt.registerTask('cli_setup', ['tslint', 'clean:build', 'build:src', 'ts_clean:src']);
 
   grunt.registerTask('test', ['test_setup', 'nodeunit']);
-  grunt.registerTask('default', ['test', 'cli_setup', 'todo']);
+  grunt.registerTask('default', ['cli_setup', 'todo']);
 
 };
