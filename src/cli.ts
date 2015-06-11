@@ -14,7 +14,7 @@ function cli(args:string[]):void {
       new lambda.Function(1,
         new lambda.Application(
           new lambda.Variable(0),
-            new lambda.Variable(1)),
+          new lambda.Variable(1)),
         'x'),
       new lambda.Function(1,
         new lambda.Application(
@@ -28,6 +28,24 @@ function cli(args:string[]):void {
   console.log(Y.applyExpr(lambdacalc.stdFuncs['1'].copy().bindAll()).bindAll().toString());
   console.log((<lambda.Function>lambdacalc.stdFuncs['Y'].copy().bindAll())
     .applyExpr(lambdacalc.stdFuncs['1'].copy().bindAll()).bindAll().toString());
+  // (λx.xyx) (λx.x)
+  var f1:lambda.Function =
+    new lambda.Function(0,
+      new lambda.Application(
+        new lambda.Application(
+          new lambda.Variable(0),
+          new lambda.Variable(1)),
+        new lambda.Variable(0)));
+  var f2:lambda.Expression = new lambda.Function(0,
+    new lambda.Variable(0));
+  f1.bindAll();
+  f2.bindAll();
+  console.log(f1.toString());
+  console.log(f2.toString());
+  console.log(f1.applyExpr(f2).bindAll().toString());
+  console.log('\
+these are the same object, so when reduced should be turned into unique objects so that when the FV is applied to the\n\
+first function, the second one does not have the same thing done to it');
   _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
     console.log(name + ': ' + f.toString());
   });

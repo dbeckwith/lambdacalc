@@ -81,10 +81,10 @@ export class Expression {
 
   bindAll():Expression {
     var expr:Expression = this;
-    expr.walk(null, (f:Function, depth:number) => {
+    /*expr.walk(null, (f:Function, depth:number) => {
       f.id = depth;
       return true;
-    }, null);
+    }, null);*/
     expr.walk((v:Variable) => {
       if (!v.isBound) {
         v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
@@ -103,7 +103,7 @@ export class Expression {
     }
     else if (this instanceof Function) {
       var f:Function = <Function>this;
-      return new Function(f.arg, f.body.replace(binder, replacement));
+      return new Function(f.arg, f.body.replace(binder, replacement), f.preferredName);
     }
     else if (this instanceof Application) {
       var a:Application = <Application>this;
@@ -156,7 +156,7 @@ export class Variable extends Expression {
   }
 
   toString():string {
-    return this.isBound ? this._binder.argStr : this.index + '*';
+    return this.isBound ? this._binder.argStr : Expression.idToName(this.index) + '*';
   }
 
 }
@@ -192,8 +192,16 @@ export class Function extends Expression {
     return this._arg;
   }
 
+  get preferredName():string {
+    return this._preferredName;
+  }
+
+  get hasPreferredName():boolean {
+    return !!this._preferredName;
+  }
+
   get argStr():string {
-    return this._preferredName || Expression.idToName(this.id);
+    return this.preferredName || Expression.idToName(this.arg);
   }
 
   get body():Expression {
@@ -205,7 +213,7 @@ export class Function extends Expression {
   }
 
   copy():Expression {
-    return new Function(this.arg, this.body.copy(), this._preferredName);
+    return new Function(this.arg, this.body.copy(), this.preferredName);
   }
 
   toString():string {
@@ -219,7 +227,7 @@ export class Function extends Expression {
       }
       return true;
     }, null);
-    return '\\' + args + '.' + body + '';
+    return '\\' + /* '[' + this.id + ']' + */ args + '.' + body + '';
   }
 
 }
