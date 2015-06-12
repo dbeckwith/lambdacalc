@@ -1,5 +1,9 @@
 # lambdacalc
-[![Build Status](https://secure.travis-ci.org/dbeckwith/lambdacalc.png?branch=master)](http://travis-ci.org/dbeckwith/lambdacalc)&nbsp;[![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com/)
+[![Build Status](https://secure.travis-ci.org/dbeckwith/lambdacalc.png?branch=master)](http://travis-ci.org/dbeckwith/lambdacalc)
+[![David](https://img.shields.io/david/dbeckwith/lambdacalc.svg)](https://github.com/dbeckwith/lambdacalc)
+[![David](https://img.shields.io/david/dev/dbeckwith/lambdacalc.svg)](https://github.com/dbeckwith/lambdacalc)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/dbeckwith/lambdacalc/master/LICENSE-MIT)
+[![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com/)
 
 Lambda Calculus reducer tool.
 
