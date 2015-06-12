@@ -8,9 +8,7 @@ import _ = require('lodash');
 
 export class Expression {
 
-  private _parent:Expression;
-
-  public static idToName(i:number):string {
+  static idToName(i:number):string {
     if (i < 3) {
       return String.fromCharCode(i + 'x'.charCodeAt(0));
     }
@@ -22,6 +20,8 @@ export class Expression {
     }
     return '[' + (i - 26) + ']';
   }
+
+  private _parent:Expression;
 
   constructor() {
     this._parent = null;
@@ -174,9 +174,40 @@ export class Variable extends Expression {
 
 }
 
+interface ArgName {
+  arg: number;
+  preferredName?: string;
+}
+
 export class Function extends Expression {
 
   private static CURR_ID:number = 0;
+
+  static multiArg(args:ArgName[]|number[], body:Expression):Function {
+    if (args.length === 0) {
+      throw new Error('Must have at least one argument');
+    }
+    var arg:number, name:string;
+
+    function getArgs(i:number):void {
+      if (typeof args[i] === 'number') {
+        arg = <number>args[i];
+        name = void 0;
+      }
+      else {
+        arg = (<ArgName>args[i]).arg;
+        name = (<ArgName>args[i]).preferredName;
+      }
+    }
+
+    getArgs(args.length - 1);
+    var f:Function = new Function(arg, body, name);
+    for (var i:number = args.length - 2; i >= 0; i--) {
+      getArgs(i);
+      f = new Function(arg, f, name);
+    }
+    return f;
+  }
 
   private _id:number;
   private _arg:number;
@@ -256,11 +287,22 @@ export class Function extends Expression {
 
 export class Application extends Expression {
 
+  static multiApp(exprs:Expression[]):Application {
+    if (exprs.length < 2) {
+      throw new Error('Must apply at least two expressions');
+    }
+    var app:Application = new Application(exprs[0], exprs[1]);
+    for (var i:number = 2; i < exprs.length; i++) {
+      app = new Application(app, exprs[i]);
+    }
+    return app;
+  }
+
   private _exprs:Expression[];
 
-  constructor(...exprs:Expression[]) {
+  constructor(exprA:Expression, exprB:Expression) {
     super();
-    this._exprs = exprs;
+    this._exprs = [exprA, exprB];
 
     _.each(this._exprs, (expr:Expression) => expr.parent = this);
   }

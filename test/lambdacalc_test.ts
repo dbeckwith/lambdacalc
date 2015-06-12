@@ -30,8 +30,6 @@ import lambdacalc = require('../src/lambdacalc');
  */
 
 export var test:nodeunit.ITestBody = function (test:nodeunit.Test):void {
-  test.expect(4 * 4);
-
   test.equal(lambdacalc.stdFuncs['0'].toString(), '\\fx.x');
   test.equal(lambdacalc.stdFuncs['1'].toString(), '\\fx.f x');
   test.equal(lambdacalc.stdFuncs['2'].toString(), '\\fx.f (f x)');
@@ -44,5 +42,10 @@ export var test:nodeunit.ITestBody = function (test:nodeunit.Test):void {
     test.ok(f.equals(f), name + ' should equal itself');
     test.ok(f.copy().bindAll().equals(f), name + '\'s copy should equal itself');
   });
+
+  test.equal(lambda.Function.multiArg([0, 1, 2],
+    lambda.Application.multiApp([new lambda.Variable(0), new lambda.Variable(2),
+                                 new lambda.Variable(1)])).bindAll().toString(), '\\xyz.x z y');
+
   test.done();
 };
