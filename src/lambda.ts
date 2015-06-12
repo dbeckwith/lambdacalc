@@ -82,9 +82,9 @@ export class Expression {
   bindAll():Expression {
     var expr:Expression = this;
     /*expr.walk(null, (f:Function, depth:number) => {
-      f.id = depth;
-      return true;
-    }, null);*/
+     f.id = depth;
+     return true;
+     }, null);*/
     expr.walk((v:Variable) => {
       if (!v.isBound) {
         v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
@@ -114,6 +114,10 @@ export class Expression {
 
   copy():Expression {
     throw new Error('copy must be overloaded');
+  }
+
+  equals(expr:Expression):boolean {
+    throw new Error('equals must be overloaded');
   }
 
   toString():string {
@@ -153,6 +157,15 @@ export class Variable extends Expression {
 
   copy():Expression {
     return new Variable(this.index);
+  }
+
+  equals(expr:Expression):boolean {
+    if (expr instanceof Variable) {
+      return this.index === expr.index;
+    }
+    else {
+      return false;
+    }
   }
 
   toString():string {
@@ -216,6 +229,15 @@ export class Function extends Expression {
     return new Function(this.arg, this.body.copy(), this.preferredName);
   }
 
+  equals(expr:Expression):boolean {
+    if (expr instanceof Function) {
+      return this.arg === expr.arg && this.body.equals(expr.body);
+    }
+    else {
+      return false;
+    }
+  }
+
   toString():string {
     var args:string = '';
     var body:string = '[error]';
@@ -257,6 +279,16 @@ export class Application extends Expression {
 
   copy():Expression {
     return new Application(this.exprA.copy(), this.exprB.copy());
+  }
+
+  equals(expr:Expression):boolean {
+    if (expr instanceof Application) {
+      return this.exprs.length === expr.exprs.length &&
+             _.all(this.exprs, (e1:Expression, i:number) => e1.equals(expr.exprs[i]));
+    }
+    else {
+      return false;
+    }
   }
 
   toString():string {
