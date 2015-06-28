@@ -35,6 +35,12 @@ export class Expression {
     this.parent = null;
   }
 
+  /**
+   * Walks an expression tree.
+   * @param vars The function to call on each variable
+   * @param funcs The function to call on each function (return true to continue walk, false to end)
+   * @param apps The function to call on each application (return true to continue walk, false to end)
+   */
   walk(vars:(v:Variable, depth:number) => void,
        funcs:(f:Function, depth:number) => boolean,
        apps:(a:Application, depth:number) => boolean):void {
@@ -69,6 +75,12 @@ export class Expression {
     recurse(this, 0);
   }
 
+  /**
+   * Finds the first parent expression of the given type matching the given test.
+   * @param T The expression type to search for
+   * @param test The test that the expression must pass
+   * @returns {T}
+   */
   findFirst<T extends Expression>(T:new(...args:any[]) => T, test:(e:T) => boolean):T {
     var e:Expression = this;
     while (e !== null) {
@@ -79,6 +91,10 @@ export class Expression {
     }
   }
 
+  /**
+   * Binds all variables in this expression tree to their target functions.
+   * @returns {Expression} the new expression, as bound as possible
+   */
   bindAll():Expression {
     var expr:Expression = this;
     /*expr.walk(null, (f:Function, depth:number) => {
@@ -94,18 +110,34 @@ export class Expression {
     return expr;
   }
 
+  /**
+   * Searches the expression tree for any duplicate names and renames functions when neccessary.
+   * @param used The function names used so far in this branch of the tree
+   */
   alphaReduce(...used:number[]):void {
     throw new Error('alphaReduce must be overloaded');
   }
 
+  /**
+   * Replaces all variables bound to the given binder by the given expression.
+   * @param binder The binder function of the variables to replace
+   * @param replacement The replacement expression
+   */
   replace(binder:Function, replacement:Expression):Expression {
     throw new Error('replace must be overloaded');
   }
 
+  /**
+   * Reduces this expression by resolving at most a single redux.
+   */
   reduceOnce():Expression {
     throw new Error('reduceOnce must be overloaded');
   }
 
+  /**
+   * Fully reduces this expression by calling {@link Expression#reduceOnce} until no more reduxes exist.
+   * @returns {Expression}
+   */
   reduce():Expression {
     var expr:Expression = this;
     var reduced:Expression;
@@ -125,14 +157,24 @@ export class Expression {
     return reduced;
   }
 
+  /**
+   * Creates a deep copy of this expression (variables will be unbound).
+   */
   copy():Expression {
     throw new Error('copy must be overloaded');
   }
 
+  /**
+   * Tests if this expression is equivalent to the given expression.
+   * @param expr
+   */
   equals(expr:Expression):boolean {
     throw new Error('equals must be overloaded');
   }
 
+  /**
+   * Converts this expression to a string format.
+   */
   toString():string {
     throw new Error('toString must be overloaded');
   }
