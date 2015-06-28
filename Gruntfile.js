@@ -93,7 +93,7 @@ module.exports = function (grunt) {
         tasks: ['jshint:gruntfile']
       },
       src: {
-        files: ['<%= src_dir %>', '<%= test_dir %>'],
+        files: ['<%= src_dir %>/**/*', '<%= test_dir %>/**/*'],
         tasks: ['test']
       }
     },
