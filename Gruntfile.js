@@ -80,8 +80,10 @@ module.exports = function (grunt) {
     },
 
     // test
-    nodeunit: {
-      all: ['<%= test_build_dir %>/test/**/*_test.js']
+    mochaTest: {
+      all: {
+        src:'<%= test_build_dir %>/test/**/*_test.js'
+      }
     },
 
     // other
@@ -114,9 +116,9 @@ module.exports = function (grunt) {
   });
 
   grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-run');
   grunt.loadNpmTasks('grunt-ts');
   grunt.loadNpmTasks('grunt-tslint');
@@ -138,7 +140,7 @@ module.exports = function (grunt) {
   grunt.registerTask('test_setup', ['tslint', 'clean:test_build', 'build:test']);
   grunt.registerTask('cli_setup', ['tslint', 'clean:build', 'build:src', 'ts_clean:src']);
 
-  grunt.registerTask('test', ['test_setup', 'nodeunit']);
+  grunt.registerTask('test', ['test_setup', 'mochaTest']);
   grunt.registerTask('default', ['cli_setup', 'todo']);
 
 };

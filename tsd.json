@@ -8,11 +8,14 @@
     "node/node.d.ts": {
       "commit": "e18e130e2188348070f98d92b98c0ea481c4a086"
     },
-    "nodeunit/nodeunit.d.ts": {
-      "commit": "e18e130e2188348070f98d92b98c0ea481c4a086"
-    },
     "lodash/lodash.d.ts": {
       "commit": "e18e130e2188348070f98d92b98c0ea481c4a086"
+    },
+    "mocha/mocha.d.ts": {
+      "commit": "6f04d25ad38982d372cc3cda62fa4c0eef9e24d7"
+    },
+    "chai/chai.d.ts": {
+      "commit": "6f04d25ad38982d372cc3cda62fa4c0eef9e24d7"
     }
   }
 }

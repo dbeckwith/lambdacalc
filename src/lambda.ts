@@ -6,6 +6,14 @@
 
 import _ = require('lodash');
 
+export var DEBUG:boolean = false;
+
+function dbg(msg:any):void {
+  if (DEBUG) {
+    console.log(msg);
+  }
+}
+
 export class Expression {
 
   static idToName(i:number):string {
@@ -101,14 +109,14 @@ export class Expression {
   reduce():Expression {
     var expr:Expression = this;
     var reduced:Expression;
-    console.log(expr.toString());
+    dbg(expr.toString());
     while (true) {
       reduced = expr.reduceOnce();
-      console.log('reduced: ' + reduced.toString());
+      dbg('reduced: ' + reduced.toString());
       reduced.bindAll();
-      console.log('bound: ' + reduced.toString());
+      dbg('bound: ' + reduced.toString());
       reduced.alphaReduce();
-      console.log('alphaReduced: ' + reduced.toString());
+      dbg('alphaReduced: ' + reduced.toString());
       if (expr.equals(reduced)) {
         break;
       }
@@ -180,7 +188,7 @@ export class Variable extends Expression {
   }
 
   toString():string {
-    return this.isBound ? this.binder.argStr : '[' + this.index + '*]';
+    return this.isBound ? this.binder.argStr : DEBUG ? '[' + this.index + '*]' : Expression.idToName(this.index);
   }
 
 }
@@ -240,7 +248,7 @@ export class Function extends Expression {
   }
 
   get argStr():string {
-    return '[' + this.id + '|' + this.arg + ']'; // this.preferredName || Expression.idToName(this.arg);
+    return DEBUG ? '[' + this.id + '|' + this.arg + ']' : this.preferredName || Expression.idToName(this.arg);
   }
 
   applyExpr(expr:Expression):Expression {

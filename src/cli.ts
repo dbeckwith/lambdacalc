@@ -9,6 +9,8 @@ import lambdacalc = require('./lambdacalc');
 import _ = require('lodash');
 
 function cli(args:string[]):void {
+  lambda.DEBUG = true;
+
   var Y:lambda.Function = new lambda.Function(0,
     new lambda.Application(
       new lambda.Function(1,
