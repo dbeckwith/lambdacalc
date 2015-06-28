@@ -54,7 +54,7 @@ describe('Expression', ():void => {
 
     it('should be the same for an expression and its copy', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f.copy().bindAll().toString()).to.be.equal(f.toString(), name + '\'s copy\'s str should equal its str');
+        expect(f.copy().bindAll().toString(), name).to.be.equal(f.toString());
       });
     });
   });
@@ -62,14 +62,13 @@ describe('Expression', ():void => {
   describe('#equals()', ():void => {
     it('should say that expressions are equal to themselves', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f).to.satisfy((f:lambda.Function) => f.equals(f), name + ' should equal itself');
+        expect(f.equals(f), name).to.be.true;
       });
     });
 
     it('should say that expressions\' copies are equal to themselves', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f).to.satisfy((f:lambda.Function) => f.copy().bindAll().equals(f),
-          name + '\'s copy should equal itself');
+        expect(f.copy().bindAll().equals(f), name).to.be.true;
       });
     });
   });
@@ -77,15 +76,13 @@ describe('Expression', ():void => {
   describe('#equiv()', ():void => {
     it('should say that expressions are equivalent to themselves', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f).to.satisfy((f:lambda.Function) => lambda.Expression.equiv(f, f),
-          name + ' should be equivalent to itself');
+        expect(lambda.Expression.equiv(f, f), name).to.be.true;
       });
     });
 
     it('should say that two similar expressions are equivalent', ():void => {
       function eqv(e1:lambda.Expression, e2:lambda.Expression):void {
-        expect(e1).to.satisfy((e:lambda.Expression) => lambda.Expression.equiv(e, e2),
-          e1.toString() + ' should be equivalent to ' + e2.toString());
+        expect(lambda.Expression.equiv(e1, e2), e1.toString() + ', ' + e2.toString()).to.be.true;
       }
 
       eqv(new lambda.Application(
@@ -113,10 +110,8 @@ describe('Expression', ():void => {
 
   describe('#reduce()', ():void => {
     it('should reduce 1 applied to anything as that thing', ():void => {
-      expect(new lambda.Application(lambdacalc.stdFuncs['1'],
-        lambdacalc.stdFuncs['2'])).to.satisfy((e:lambda.Expression) =>
-          lambda.Expression.equiv(e.reduce(), lambdacalc.stdFuncs['2']),
-        '1 2 should equal 2');
+      expect(lambda.Expression.equiv(new lambda.Application(lambdacalc.stdFuncs['1'],
+        lambdacalc.stdFuncs['2']).reduce(), lambdacalc.stdFuncs['2']), '1 2 should equal 2').to.be.true;
     });
   });
 });
