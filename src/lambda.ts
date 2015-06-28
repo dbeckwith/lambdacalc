@@ -29,6 +29,14 @@ export class Expression {
     return '[' + (i - 26) + ']';
   }
 
+  static equiv(e1:Expression, e2:Expression):boolean {
+    e1 = e1.copy();
+    e2 = e2.copy();
+    e1.alphaNormalize();
+    e2.alphaNormalize();
+    return e1.equals(e2);
+  }
+
   parent:Expression;
 
   constructor() {
@@ -119,6 +127,15 @@ export class Expression {
   }
 
   /**
+   * Reduces the function names in this expression tree such that they are in a normal form. This method does not
+   * preserve function names as well as {@link Expression#alphaReduce}
+   * @param minArg The lowest name used so far in this branch of the tree
+   */
+  alphaNormalize(minArg?:number):void {
+    throw new Error('alphaNormalize must be overloaded');
+  }
+
+  /**
    * Replaces all variables bound to the given binder by the given expression.
    * @param binder The binder function of the variables to replace
    * @param replacement The replacement expression
@@ -165,7 +182,7 @@ export class Expression {
   }
 
   /**
-   * Tests if this expression is equivalent to the given expression.
+   * Tests if this expression is equal to the given expression.
    * @param expr
    */
   equals(expr:Expression):boolean {
@@ -203,6 +220,9 @@ export class Variable extends Expression {
   }
 
   alphaReduce(...used:number[]):void {
+  }
+
+  alphaNormalize(minArg?:number):void {
   }
 
   replace(binder:Function, replacement:Expression):Expression {
@@ -311,6 +331,11 @@ export class Function extends Expression {
     this.body.alphaReduce.apply(this.body, newUsed);
   }
 
+  alphaNormalize(minArg?:number):void {
+    this.arg = minArg || 0;
+    this.body.alphaNormalize(this.arg + 1);
+  }
+
   replace(binder:Function, replacement:Expression):Expression {
     return new Function(this.arg, this.body.replace(binder, replacement), this.preferredName);
   }
@@ -380,6 +405,10 @@ export class Application extends Expression {
 
   alphaReduce(...used:number[]):void {
     _.each(this.exprs, (expr:Expression) => expr.alphaReduce.apply(expr, used.slice(0)));
+  }
+
+  alphaNormalize(minArg?:number):void {
+    _.each(this.exprs, (expr:Expression) => expr.alphaNormalize(minArg));
   }
 
   replace(binder:Function, replacement:Expression):Expression {
