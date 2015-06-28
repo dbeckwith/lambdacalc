@@ -233,7 +233,7 @@ export class Variable extends Expression {
 
   replace(binder:Function, replacement:Expression):Expression {
     if (this.binder === binder) {
-      return replacement;
+      return replacement.copy();
     }
     return this.copy();
   }

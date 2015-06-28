@@ -112,8 +112,29 @@ describe('Expression', ():void => {
 
   describe('#reduce()', ():void => {
     it('should reduce 1 applied to anything as that thing', ():void => {
-      expect(lambda.Expression.equiv(new lambda.Application(lambdacalc.stdFuncs['1'],
-        lambdacalc.stdFuncs['2']).reduce(), lambdacalc.stdFuncs['2']), '1 2 should equal 2').to.be.true;
+      function eqv(e:lambda.Expression):void {
+        var a:lambda.Application = new lambda.Application(lambdacalc.stdFuncs['1'], e);
+        expect(lambda.Expression.equiv(a.reduce(), e), a.toString() + ' should equal ' + e.toString()).to.be.true;
+      }
+      eqv(lambdacalc.stdFuncs['0']);
+      eqv(lambdacalc.stdFuncs['1']);
+      eqv(lambdacalc.stdFuncs['2']);
+    });
+
+    it('should reduce n applied to 1 applied to anything as that thing', ():void => {
+      function eqv(n:lambda.Function, e:lambda.Expression):void {
+        var a:lambda.Application = lambda.Application.multiApp([n, lambdacalc.stdFuncs['1'], e]);
+        expect(lambda.Expression.equiv(a.reduce(), e), a.toString() + ' should equal ' + e.toString()).to.be.true;
+      }
+      eqv(lambdacalc.stdFuncs['0'], lambdacalc.stdFuncs['0']);
+      eqv(lambdacalc.stdFuncs['0'], lambdacalc.stdFuncs['1']);
+      eqv(lambdacalc.stdFuncs['0'], lambdacalc.stdFuncs['2']);
+      eqv(lambdacalc.stdFuncs['1'], lambdacalc.stdFuncs['0']);
+      eqv(lambdacalc.stdFuncs['1'], lambdacalc.stdFuncs['1']);
+      eqv(lambdacalc.stdFuncs['1'], lambdacalc.stdFuncs['2']);
+      eqv(lambdacalc.stdFuncs['2'], lambdacalc.stdFuncs['0']);
+      eqv(lambdacalc.stdFuncs['2'], lambdacalc.stdFuncs['1']);
+      eqv(lambdacalc.stdFuncs['2'], lambdacalc.stdFuncs['2']);
     });
   });
 });

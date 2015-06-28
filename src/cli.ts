@@ -61,6 +61,19 @@ make sure they are differentiated, but then names are lost? (or just reduce vars
     lambdacalc.stdFuncs['2']).reduce();
   console.log(f3.toString());
   console.log(lambda.Expression.equiv(f3, lambdacalc.stdFuncs['2']));
+
+  console.log('------------');
+  lambda.DEBUG = false;
+  var f4:lambda.Expression = new lambda.Application(new lambda.Application(lambdacalc.stdFuncs['2'],
+      lambdacalc.stdFuncs['1']),
+    lambdacalc.stdFuncs['0']);
+  console.log(f4.toString());
+  console.log(lambda.Expression.equiv(f4.reduce(), lambdacalc.stdFuncs['0']));
+  _.times(10, ():void => {
+    f4 = f4.reduceOnce().bindAll();
+    f4.alphaReduce();
+    console.log(f4.toString());
+  });
 }
 
 export = cli;
