@@ -82,6 +82,8 @@ describe('Expression', ():void => {
 
     it('should say that two similar expressions are equivalent', ():void => {
       function eqv(e1:lambda.Expression, e2:lambda.Expression):void {
+        e1.bindAll();
+        e2.bindAll();
         expect(lambda.Expression.equiv(e1, e2), e1.toString() + ', ' + e2.toString()).to.be.true;
       }
 

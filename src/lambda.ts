@@ -30,10 +30,16 @@ export class Expression {
   }
 
   static equiv(e1:Expression, e2:Expression):boolean {
-    e1 = e1.copy();
-    e2 = e2.copy();
+    dbg(e1.toString());
+    dbg(e2.toString());
+    e1 = e1.copy().bindAll();
+    dbg(e1.toString());
+    e2 = e2.copy().bindAll();
+    dbg(e2.toString());
     e1.alphaNormalize();
+    dbg(e1.toString());
     e2.alphaNormalize();
+    dbg(e2.toString());
     return e1.equals(e2);
   }
 
@@ -242,7 +248,7 @@ export class Variable extends Expression {
 
   equals(expr:Expression):boolean {
     if (expr instanceof Variable) {
-      return this.index === expr.index;
+      return this.isBound ? this.binder.arg === expr.binder.arg : this.index === expr.index;
     }
     else {
       return false;

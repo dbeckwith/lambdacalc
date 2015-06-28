@@ -60,6 +60,7 @@ make sure they are differentiated, but then names are lost? (or just reduce vars
   var f3:lambda.Expression = new lambda.Application(lambdacalc.stdFuncs['1'],
     lambdacalc.stdFuncs['2']).reduce();
   console.log(f3.toString());
+  console.log(lambda.Expression.equiv(f3, lambdacalc.stdFuncs['2']));
 }
 
 export = cli;
