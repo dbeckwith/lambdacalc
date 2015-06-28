@@ -47,5 +47,11 @@ export var test:nodeunit.ITestBody = function (test:nodeunit.Test):void {
     lambda.Application.multiApp([new lambda.Variable(0), new lambda.Variable(2),
                                  new lambda.Variable(1)])).bindAll().toString(), '\\xyz.x z y');
 
+  test.equal(new lambda.Application(lambdacalc.stdFuncs['Y'],
+    lambdacalc.stdFuncs['0']).reduceOnce().bindAll().toString(), '(\\x.(\\fx.x) (x x)) (\\x.(\\fx.x) (x x))');
+
+  test.ok(new lambda.Application(lambdacalc.stdFuncs['1'],
+    lambdacalc.stdFuncs['2']).reduce().equals(lambdacalc.stdFuncs['2']));
+
   test.done();
 };

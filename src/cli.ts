@@ -49,6 +49,14 @@ first function, the second one does not have the same thing done to it');
   _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
     console.log(name + ': ' + f.toString());
   });
+
+  console.log('------------');
+  console.log(new lambda.Function(0, new lambda.Variable(0)).bindAll().reduce().toString());
+  console.log('\
+in step 2, end up with different FVs both named y, so they get bound to the same thing, need to do alpha reduction to\n\
+make sure they are differentiated, but then names are lost? (or just reduce vars??)');
+  console.log(new lambda.Application(lambdacalc.stdFuncs['1'],
+    lambdacalc.stdFuncs['2']).reduce().toString());
 }
 
 export = cli;

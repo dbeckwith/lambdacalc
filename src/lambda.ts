@@ -21,18 +21,10 @@ export class Expression {
     return '[' + (i - 26) + ']';
   }
 
-  private _parent:Expression;
+  parent:Expression;
 
   constructor() {
-    this._parent = null;
-  }
-
-  get parent():Expression {
-    return this._parent;
-  }
-
-  set parent(parent:Expression)/* tslint:disable:typedef */ {/* tslint:enable:typedef */
-    this._parent = parent;
+    this.parent = null;
   }
 
   walk(vars:(v:Variable, depth:number) => void,
@@ -94,22 +86,35 @@ export class Expression {
     return expr;
   }
 
+  alphaReduce(...used:number[]):void {
+    throw new Error('alphaReduce must be overloaded');
+  }
+
   replace(binder:Function, replacement:Expression):Expression {
-    if (this instanceof Variable) {
-      if ((<Variable>this).binder === binder) {
-        return replacement;
+    throw new Error('replace must be overloaded');
+  }
+
+  reduceOnce():Expression {
+    throw new Error('reduceOnce must be overloaded');
+  }
+
+  reduce():Expression {
+    var expr:Expression = this;
+    var reduced:Expression;
+    console.log(expr.toString());
+    while (true) {
+      reduced = expr.reduceOnce();
+      console.log('reduced: ' + reduced.toString());
+      reduced.bindAll();
+      console.log('bound: ' + reduced.toString());
+      reduced.alphaReduce();
+      console.log('alphaReduced: ' + reduced.toString());
+      if (expr.equals(reduced)) {
+        break;
       }
-      return this.copy();
+      expr = reduced;
     }
-    else if (this instanceof Function) {
-      var f:Function = <Function>this;
-      return new Function(f.arg, f.body.replace(binder, replacement), f.preferredName);
-    }
-    else if (this instanceof Application) {
-      var a:Application = <Application>this;
-      var newExprs:Expression[] = _.map(a.exprs, (expr:Expression) => expr.replace(binder, replacement));
-      return new Application(newExprs[0], newExprs[1]);
-    }
+    return reduced;
   }
 
   copy():Expression {
@@ -127,32 +132,38 @@ export class Expression {
 
 export class Variable extends Expression {
 
-  private _index:number;
-  private _binder:Function;
+  index:number;
+  binder:Function;
 
   constructor(index:number) {
     super();
-    this._index = index;
-    this._binder = null;
-  }
-
-  get index():number {
-    return this._index;
-  }
-
-  get binder():Function {
-    return this._binder;
+    this.index = index;
+    this.binder = null;
   }
 
   get isBound():boolean {
-    return this._binder !== null;
+    return this.binder !== null;
   }
 
   bind(binder:Function):void {
     if (!binder) {
       binder = null;
     }
-    this._binder = binder;
+    this.binder = binder;
+  }
+
+  alphaReduce(...used:number[]):void {
+  }
+
+  replace(binder:Function, replacement:Expression):Expression {
+    if (this.binder === binder) {
+      return replacement;
+    }
+    return this.copy();
+  }
+
+  reduceOnce():Expression {
+    return this.copy();
   }
 
   copy():Expression {
@@ -169,7 +180,7 @@ export class Variable extends Expression {
   }
 
   toString():string {
-    return this.isBound ? this._binder.argStr : Expression.idToName(this.index) + '*';
+    return this.isBound ? this.binder.argStr : '[' + this.index + '*]';
   }
 
 }
@@ -209,51 +220,53 @@ export class Function extends Expression {
     return f;
   }
 
-  private _id:number;
-  private _arg:number;
-  private _body:Expression;
-  private _preferredName:string;
+  id:number;
+  arg:number;
+  body:Expression;
+  preferredName:string;
 
   constructor(arg:number, body:Expression, preferredName?:string) {
     super();
-    this._id = Function.CURR_ID++;
-    this._arg = arg;
-    this._body = body;
-    this._preferredName = preferredName;
+    this.id = Function.CURR_ID++;
+    this.arg = arg;
+    this.body = body;
+    this.preferredName = preferredName;
 
-    this._body.parent = this;
-  }
-
-  set id(id:number)/* tslint:disable:typedef */ {/* tslint:enable:typedef */
-    this._id = id;
-  }
-
-  get id():number {
-    return this._id;
-  }
-
-  get arg():number {
-    return this._arg;
-  }
-
-  get preferredName():string {
-    return this._preferredName;
+    this.body.parent = this;
   }
 
   get hasPreferredName():boolean {
-    return !!this._preferredName;
+    return !!this.preferredName;
   }
 
   get argStr():string {
-    return this.preferredName || Expression.idToName(this.arg);
-  }
-
-  get body():Expression {
-    return this._body;
+    return '[' + this.id + '|' + this.arg + ']'; // this.preferredName || Expression.idToName(this.arg);
   }
 
   applyExpr(expr:Expression):Expression {
     return this.body.replace(this, expr);
+  }
+
+  alphaReduce(...used:number[]):void {
+    if (_.contains(used, this.arg)) {
+      this.arg = _.max(used) + 1;
+      this.body.walk((v:Variable) => {
+        if (v.binder === this) {
+          v.index = this.arg;
+        }
+      }, null, null);
+    }
+    var newUsed:number[] = used.slice(0);
+    newUsed.push(this.arg);
+    this.body.alphaReduce.apply(this.body, newUsed);
+  }
+
+  replace(binder:Function, replacement:Expression):Expression {
+    return new Function(this.arg, this.body.replace(binder, replacement), this.preferredName);
+  }
+
+  reduceOnce():Expression {
+    return new Function(this.arg, this.body.reduceOnce(), this.preferredName);
   }
 
   copy():Expression {
@@ -298,25 +311,39 @@ export class Application extends Expression {
     return app;
   }
 
-  private _exprs:Expression[];
+  exprs:Expression[];
 
   constructor(exprA:Expression, exprB:Expression) {
     super();
-    this._exprs = [exprA, exprB];
+    this.exprs = [exprA, exprB];
 
-    _.each(this._exprs, (expr:Expression) => expr.parent = this);
-  }
-
-  get exprs():Expression[] {
-    return this._exprs;
+    _.each(this.exprs, (expr:Expression) => expr.parent = this);
   }
 
   get exprA():Expression {
-    return this._exprs[0];
+    return this.exprs[0];
   }
 
   get exprB():Expression {
-    return this._exprs[1];
+    return this.exprs[1];
+  }
+
+  alphaReduce(...used:number[]):void {
+    _.each(this.exprs, (expr:Expression) => expr.alphaReduce.apply(expr, used.slice(0)));
+  }
+
+  replace(binder:Function, replacement:Expression):Expression {
+    var newExprs:Expression[] = _.map(this.exprs, (expr:Expression) => expr.replace(binder, replacement));
+    return new Application(newExprs[0], newExprs[1]);
+  }
+
+  reduceOnce():Expression {
+    if (this.exprA instanceof Function) {
+      return (<Function>this.exprA).applyExpr(this.exprB.copy());
+    }
+    else {
+      return new Application(this.exprA.reduceOnce(), this.exprB.reduceOnce());
+    }
   }
 
   copy():Expression {
