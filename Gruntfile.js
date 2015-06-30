@@ -99,7 +99,7 @@ module.exports = function (grunt) {
     },
     todo: {
       options: {},
-      src: ['<%= src_dir %>/**/*']
+      src: ['<%= src_dir %>/**/*', 'notes.txt']
     },
     run: {
       link: {

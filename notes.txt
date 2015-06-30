@@ -5,6 +5,9 @@ also can convert scripts into latex markup to produce documents (don't have to d
 http://stackoverflow.com/questions/202605/repeat-string-javascript
 http://en.wikipedia.org/wiki/Church_encoding#Signed_numbers
 http://www.allisons.org/ll/FP/Lambda/Interpreter/
+https://en.wikipedia.org/wiki/Lambda_calculus
+http://www.inf.fu-berlin.de/lehre/WS03/alpi/lambda.pdf
+http://www.cse.chalmers.se/research/group/logic/TypesSS05/Extra/geuvers.pdf
 
 // a variable can be any lowercase letter, or any number surrounded by square brackets
 var: [a-z]|"["[0-9]+"]"
@@ -71,8 +74,8 @@ having a line with just an expression will just expand that expression, only rea
 /* 
  * church numerals can be defined recursively:
  * <nat: (\d+)> := {
- *  $1 == 0: \fx.x // 0 = x
- *  \fx.f (<+$1 - 1> f x) // n = f(f^(n-1)(x))
+ * 	$1 == 0: \fx.x // 0 = x
+ * 	\fx.f (<+$1 - 1> f x) // n = f(f^(n-1)(x))
  * }
  * but this definition expands very slowly:
  * > @verb+
@@ -101,46 +104,46 @@ having a line with just an expression will just expand that expression, only rea
  * [1 step, fully reduced]
  */
 
-SUCC := \nfx.f (n f x) // f^(n+1)(x) = f(f^n(x))
-ADD := \mn.m f (n f x) // f^(m+n)(x) = f^m(f^n(x))
-MULT := \mnf.m (n f) // f^(m*n)(x) = (f^n)^m(x)
-EXP := \mn.n m // n f x = f^n(x) => m^n f = n m f
-PRED := \nfx.n (\gh.h (g f)) (\u.x) (\u.u)
-SUBT := \mn.(n PRED) m
+SUCC(S) := \nfx.f (n f x) // f^(n+1)(x) = f(f^n(x))
+ADD(+) := \mn.m f (n f x) // f^(m+n)(x) = f^m(f^n(x))
+MULT(\cdot) := \mnf.m (n f) // f^(m*n)(x) = (f^n)^m(x)
+EXP(\hat{}) := \mn.n m // n f x = f^n(x) => m^n f = n m f
+PRED(P) := \nfx.n (\gh.h (g f)) (\u.x) (\u.u)
+SUBT(-) := \mn.(n PRED) m
 
-T := \ab.a
-F := \ab.b
+T(\mathbb T) := \ab.a
+F(\mathbb F) := \ab.b
 
-AND := \pq.p q F
-OR := \pq.p T q
-NOT := \p.p F T
-XOR := \pq.p (NOT q) q
+AND(\land) := \pq.p q F
+OR(\lor) := \pq.p T q
+NOT(\lnot) := \p.p F T
+XOR(\xor) := \pq.p (NOT q) q
 
-IS_ZERO := \n.n (\x.F) T
-LE := \mn.IS_ZERO (SUBT m n)
-GE := \mn.IS_ZERO (SUBT n m)
-EQ := \mn.AND (LEQ n m) (GEQ n m)
-LT := NOT GE
-GT := NOT LE
+ISZERO(Z) := \n.n (\x.F) T
+LE(\le) := \mn.ISZERO (SUBT m n)
+GE(\ge) := \mn.ISZERO (SUBT n m)
+EQ(=) := \mn.AND (LEQ n m) (GEQ n m)
+LT(<) := NOT GE
+GT(>) := NOT LE
 
 PAIR := \xyz.z x y
-FIRST := \p.p T
-SECOND := \p.p F
+FIRST(\pi_1) := \p.p T
+SECOND(\pi_2) := \p.p F
 
 Y := \r.(\x.r (x x)) (\x.r (x x))
 
 
-<int: (-)?($nat$)Z> := {
-    $1: PAIR $2 0;
-    PAIR 0 $2
+<int: (-)?($nat$)Z>($1$2) := {
+	$1: PAIR 0 $2
+	PAIR $2 0
 }
 
 NTOZ := \n.PAIR n 0
 
 <add: (?:(Z|Q)(?:_))?ADD> := {
-    $1 == "I": \xy.PAIR (ADD (FIRST x) (FIRST y)) (ADD (SECOND x) (SECOND y));
-    $1 == "R": \xy.PAIR (ZADD (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y));
-    \xy.x S y
+	$1 == "I": \xy.PAIR (ADD (FIRST x) (FIRST y)) (ADD (SECOND x) (SECOND y));
+	$1 == "R": \xy.PAIR (ZADD (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y))) (ZMULT (SECOND x) (SECOND y));
+	\xy.x S y
 }
 <lt: (Z|Q)?LT> := NOT $1GE
 
@@ -149,9 +152,12 @@ ISUB 4Z 6Z =? -2Z
 
 ZDIV := 
 
-ZFACT := Y \rn.Z n 1 (MULT n (P n))
+ZFACT := Y \rn.ISZERO n 1 (MULT n (P n))
 
-<rat: ($int$)\|($nat$)> := PAIR $1 $2
+<rat: (-)?($nat$)(\|($nat$)|Q)>($3 == "Q" ? $1$2 : \frac{$1$2}{$4}) := {
+	$3 == "Q": PAIR $1$2Z 1Z
+	PAIR $1$2Z $4Z
+}
 
 ZTOQ := \z.PAIR z 1Z
 NTOQ := \n.ZTOQ (NTOZ n)
@@ -160,20 +166,47 @@ QSUB := \xy.PAIR (ZSUB (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (SECOND y)
 QMULT := \xy.PAIR (ZMULT (FIRST x) (FIRST y)) (ZMULT (SECOND x) (SECOND y))
 QDIV := \xy.PAIR (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (FIRST y))
 
-NIL := \x.T
+// lists
+NIL := PAIR TRUE TRUE
+ISNIL := FIRST
+CONS := \ht.PAIR FALSE (PAIR h t)
+HEAD := \l.FIRST (SECOND l)
+TAIL := \l.SECOND (SECOND l)
+REDUCE := Y (\rlci.ISNIL l i (c (HEAD l) (r (TAIL l))))
+LEN := \l.REDUCE l (\ht.SUCC t) 0
+GET := Y (\rli.ISNIL l ??? (ISZERO i (HEAD l) (r (TAIL l) (PRED i))))
+MAP := Y (\rlf.ISNIL l NIL (CONS (f (HEAD l)) (r (TAIL l) f)))
+RANGE := \n.Y (\ri.EQ i n NIL (CONS i (r (SUCC i)))) 0
+BYELEM := \nf.MAP (RANGE n) f
+PUSH := \le.REDUCE l CONS (CONS e NIL)
+POP := \l.ISNIL l ??? ((\t.(ISNIL t (HEAD l) (r t))) (TAIL l))
 
-NULL := \x.x (\yz.F)
-LFIRST := \x.FIRST x
+// matrices
+NTOM := \n.CONS (CONS n NIL) NIL
+MFMTCHK := \a.REDUCE a (\ht.AND (EQ (LEN a) (LEN h)) t) T
+MHEAD := \a.HEAD (HEAD a)
+MTAIL := \a.MAP (TAIL a) (\r.TAIL r)
+MDIAGREDUCE := Y (\rlci.ISNIL l i (c (MHEAD l) (r (MTAIL l))))
+MDIAGMAP := Y (\rlf.ISNIL l NIL (CONS (f (MHEAD l)) (r (MTAIL l) f)))
+ROWS := \a.LEN a
+COLS := \a.ISNIL a 0 (LEN (HEAD a))
+ISDIMEQ := \ab.AND (EQ (ROWS a) (ROWS b)) (EQ (COLS a) (COLS b))
+ISSQUARE := \a.EQ (ROWS a) (COLS a)
+TRACE := \a.MDIAGREDUCE a ADD 0
+ZTRACE := \a.MDIAGREDUCE a ZADD 0Z
+QTRACE := \a.MDIAGREDUCE a QADD 0Q
+MGET := \arc.GET (GET a r) c
+MBYELEM := \rcf.BYELEM r (\i.BYELEM c (\j.f i j))
+M0 := \rc.MBYELEM r c (\ij.0)
+M0Z := \rc.MBYELEM r c (\ij.0Z)
+M0Q := \rc.MBYELEM r c (\ij.0Q)
+MI := \rc.MBYELEM r c (\ij.EQ i j 1 0)
+MZI := \rc.MBYELEM r c (\ij.ZEQ i j 1Z 0Z)
+MQI := \rc.MBYELEM r c (\ij.QEQ i j 1Q 0Q)
+MADD := \ab.MBYELEM r c (\ij.ADD (MGET a i j) (MGET b i j))
+MZADD := \ab.MBYELEM r c (\ij.ZADD (MGET a i j) (MGET b i j))
+MQADD := \ab.MBYELEM r c (\ij.QADD (MGET a i j) (MGET b i j))
 
-LEN := Y \rx.NULL x 0 (r SECOND x)
-
-/*
-NULL (0 (1 (2 NIL)))
-(0 (1 2)) (\xy.F)
-(\xy.F) 0 (1 (2 NIL))
-F
-
-NULL NIL
-NIL (\xy.F)
-T
-*/
+TRACE (CONS (CONS 1 (CONS 2 NIL)) (CONS (CONS 3 (CONS 4 NIL)) NIL)) =? 5
+ZTRACE (CONS (CONS 1Z (CONS -2Z NIL)) (CONS (CONS 3Z (CONS -4Z NIL)) NIL)) =? -3Z
+MADD (M0 2 2) (MI 2 2) =? (CONS (CONS 1 (CONS 0 NIL)) (CONS (CONS 0 (CONS 1 NIL)) NIL))
