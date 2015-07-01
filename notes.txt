@@ -70,6 +70,8 @@ having a line with just an expression will just expand that expression, only rea
 
 
 
+I := \x.x
+K := \xy.x
 
 /* 
  * church numerals can be defined recursively:
@@ -108,18 +110,31 @@ SUCC(S) := \nfx.f (n f x) // f^(n+1)(x) = f(f^n(x))
 ADD(+) := \mn.m f (n f x) // f^(m+n)(x) = f^m(f^n(x))
 MULT(\cdot) := \mnf.m (n f) // f^(m*n)(x) = (f^n)^m(x)
 EXP(\hat{}) := \mn.n m // n f x = f^n(x) => m^n f = n m f
-PRED(P) := \nfx.n (\gh.h (g f)) (\u.x) (\u.u)
+PRED(P) := \nfx.n (\gh.h (g f)) (K x) I // from https://en.wikipedia.org/wiki/Church_encoding#Derivation_of_predecessor_function
+PRED(P) := \n.FIRST n (\p.(\i.PAIR i (SUCC i)) (SECOND p)) (PAIR 0 0) // using previous-value pairs:
+/*
+starts with 0,0
+converts a,b to b,b+1 n times, then returns the first number
+PRED 4:
+0,0
+0,1
+1,2
+2,3
+3,4
+3
+*/
+// TODO: equivalent definitions of PRED?
 SUBT(-) := \mn.(n PRED) m
 
-T(\mathbb T) := \ab.a
-F(\mathbb F) := \ab.b
+TRUE(\mathbb T) := \ab.a
+FALSE(\mathbb F) := \ab.b
 
-AND(\land) := \pq.p q F
-OR(\lor) := \pq.p T q
-NOT(\lnot) := \p.p F T
+AND(\land) := \pq.p q FALSE
+OR(\lor) := \pq.p TRUE q
+NOT(\lnot) := \p.p FALSE TRUE
 XOR(\xor) := \pq.p (NOT q) q
 
-ISZERO(Z) := \n.n (\x.F) T
+ISZERO(Z) := \n.n (\x.FALSE) TRUE
 LE(\le) := \mn.ISZERO (SUBT m n)
 GE(\ge) := \mn.ISZERO (SUBT n m)
 EQ(=) := \mn.AND (LEQ n m) (GEQ n m)
@@ -127,12 +142,13 @@ LT(<) := NOT GE
 GT(>) := NOT LE
 
 PAIR := \xyz.z x y
-FIRST(\pi_1) := \p.p T
-SECOND(\pi_2) := \p.p F
+FIRST(\pi_1) := \p.p TRUE
+SECOND(\pi_2) := \p.p FALSE
 
 Y := \r.(\x.r (x x)) (\x.r (x x))
 
 
+// TODO: use -3 and +3 to denote integers
 <int: (-)?($nat$)Z>($1$2) := {
 	$1: PAIR 0 $2
 	PAIR $2 0
@@ -167,19 +183,19 @@ QMULT := \xy.PAIR (ZMULT (FIRST x) (FIRST y)) (ZMULT (SECOND x) (SECOND y))
 QDIV := \xy.PAIR (ZMULT (FIRST x) (SECOND y)) (ZMULT (SECOND x) (FIRST y))
 
 // lists
-NIL := PAIR TRUE TRUE
-ISNIL := FIRST
-CONS := \ht.PAIR FALSE (PAIR h t)
-HEAD := \l.FIRST (SECOND l)
-TAIL := \l.SECOND (SECOND l)
+CONS := PAIR
+HEAD := FIRST
+TAIL := SECOND
+NIL := FALSE
+ISNIL := \l.l (\htd.FALSE) TRUE
 REDUCE := Y (\rlci.ISNIL l i (c (HEAD l) (r (TAIL l))))
 LEN := \l.REDUCE l (\ht.SUCC t) 0
-GET := Y (\rli.ISNIL l ??? (ISZERO i (HEAD l) (r (TAIL l) (PRED i))))
+GET := Y (\rli.ISZERO i (HEAD l) (r (TAIL l) (PRED i)))
 MAP := Y (\rlf.ISNIL l NIL (CONS (f (HEAD l)) (r (TAIL l) f)))
 RANGE := \n.Y (\ri.EQ i n NIL (CONS i (r (SUCC i)))) 0
 BYELEM := \nf.MAP (RANGE n) f
 PUSH := \le.REDUCE l CONS (CONS e NIL)
-POP := \l.ISNIL l ??? ((\t.(ISNIL t (HEAD l) (r t))) (TAIL l))
+POP := Y (\rl.(\t.(ISNIL t (HEAD l) (r t))) (TAIL l))
 
 // matrices
 NTOM := \n.CONS (CONS n NIL) NIL
