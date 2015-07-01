@@ -14,34 +14,36 @@ function dbg(msg:any):void {
   }
 }
 
+function idToName(i:number):string {
+  if (i < 3) {
+    return String.fromCharCode(i + 'x'.charCodeAt(0));
+  }
+  if (i < 6) {
+    return String.fromCharCode(i - 3 + 'u'.charCodeAt(0));
+  }
+  if (i < 26) {
+    return String.fromCharCode(i - 6 + 'a'.charCodeAt(0));
+  }
+  return '[' + (i - 26) + ']';
+}
+
+export function equiv(e1:Expression, e2:Expression):boolean {
+  dbg(e1.toString());
+  dbg(e2.toString());
+  dbg('bind');
+  e1 = e1.copy().bindAll();
+  dbg(e1.toString());
+  e2 = e2.copy().bindAll();
+  dbg(e2.toString());
+  dbg('normalize');
+  e1.alphaNormalize();
+  dbg(e1.toString());
+  e2.alphaNormalize();
+  dbg(e2.toString());
+  return e1.equals(e2);
+}
+
 export class Expression {
-
-  static idToName(i:number):string {
-    if (i < 3) {
-      return String.fromCharCode(i + 'x'.charCodeAt(0));
-    }
-    if (i < 6) {
-      return String.fromCharCode(i - 3 + 'u'.charCodeAt(0));
-    }
-    if (i < 26) {
-      return String.fromCharCode(i - 6 + 'a'.charCodeAt(0));
-    }
-    return '[' + (i - 26) + ']';
-  }
-
-  static equiv(e1:Expression, e2:Expression):boolean {
-    dbg(e1.toString());
-    dbg(e2.toString());
-    e1 = e1.copy().bindAll();
-    dbg(e1.toString());
-    e2 = e2.copy().bindAll();
-    dbg(e2.toString());
-    e1.alphaNormalize();
-    dbg(e1.toString());
-    e2.alphaNormalize();
-    dbg(e2.toString());
-    return e1.equals(e2);
-  }
 
   parent:Expression;
 
@@ -256,55 +258,43 @@ export class Variable extends Expression {
   }
 
   toString():string {
-    return this.isBound ? this.binder.argStr : DEBUG ? '[' + this.index + '*]' : Expression.idToName(this.index);
+    return this.isBound ? this.binder.argStr : DEBUG ? '[' + this.index + '*]' : idToName(this.index);
   }
 
-}
-
-interface ArgName {
-  arg: number;
-  preferredName?: string;
 }
 
 export class Function extends Expression {
 
   private static CURR_ID:number = 0;
 
-  static multiArg(args:ArgName[]|number[], body:Expression):Function {
+  static multiArg(args:number[], argNames:string[], body:Expression, preferredName?:string):Function {
     if (args.length === 0) {
       throw new Error('Must have at least one argument');
     }
-    var arg:number, name:string;
 
-    function getArgs(i:number):void {
-      if (typeof args[i] === 'number') {
-        arg = <number>args[i];
-        name = void 0;
-      }
-      else {
-        arg = (<ArgName>args[i]).arg;
-        name = (<ArgName>args[i]).preferredName;
-      }
-    }
-
-    getArgs(args.length - 1);
-    var f:Function = new Function(arg, body, name);
-    for (var i:number = args.length - 2; i >= 0; i--) {
-      getArgs(i);
-      f = new Function(arg, f, name);
+    var f:Function;
+    var arg:number;
+    var argName:string;
+    for (var i:number = args.length - 1; i >= 0; i--) {
+      arg = args[i];
+      argName = !argNames ? null : argNames[i];
+      f = new Function(arg, argName, body, i === 0 ? preferredName : void 0);
+      body = f;
     }
     return f;
   }
 
   id:number;
   arg:number;
+  argName:string;
   body:Expression;
   preferredName:string;
 
-  constructor(arg:number, body:Expression, preferredName?:string) {
+  constructor(arg:number, argName:string, body:Expression, preferredName?:string) {
     super();
     this.id = Function.CURR_ID++;
     this.arg = arg;
+    this.argName = argName;
     this.body = body;
     this.preferredName = preferredName;
 
@@ -316,7 +306,7 @@ export class Function extends Expression {
   }
 
   get argStr():string {
-    return DEBUG ? '[' + this.id + '|' + this.arg + ']' : this.preferredName || Expression.idToName(this.arg);
+    return DEBUG ? '[' + this.id + '|' + this.arg + ']' : this.argName || idToName(this.arg);
   }
 
   applyExpr(expr:Expression):Expression {
@@ -326,6 +316,7 @@ export class Function extends Expression {
   alphaReduce(...used:number[]):void {
     if (_.contains(used, this.arg)) {
       this.arg = _.max(used) + 1;
+      this.argName = null;
       this.body.walk((v:Variable) => {
         if (v.binder === this) {
           v.index = this.arg;
@@ -339,19 +330,20 @@ export class Function extends Expression {
 
   alphaNormalize(minArg?:number):void {
     this.arg = minArg || 0;
+    this.argName = null;
     this.body.alphaNormalize(this.arg + 1);
   }
 
   replace(binder:Function, replacement:Expression):Expression {
-    return new Function(this.arg, this.body.replace(binder, replacement), this.preferredName);
+    return new Function(this.arg, this.argName, this.body.replace(binder, replacement), this.preferredName);
   }
 
   reduceOnce():Expression {
-    return new Function(this.arg, this.body.reduceOnce(), this.preferredName);
+    return new Function(this.arg, this.argName, this.body.reduceOnce(), this.preferredName);
   }
 
   copy():Expression {
-    return new Function(this.arg, this.body.copy(), this.preferredName);
+    return new Function(this.arg, this.argName, this.body.copy(), this.preferredName);
   }
 
   equals(expr:Expression):boolean {
