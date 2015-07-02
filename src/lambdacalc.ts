@@ -51,5 +51,8 @@ _.each(stdFuncs, (f:lambda.Function) => {
 });
 
 export function getStdFunc(name:string):lambda.Function {
-  return _.find(stdFuncs, (f:lambda.Function):boolean => f.preferredName === name);
+  var f:lambda.Function = <lambda.Function>_.find(stdFuncs,
+    (f:lambda.Function):boolean => f.preferredName === name).copy();
+  f.bindAll();
+  return f;
 }

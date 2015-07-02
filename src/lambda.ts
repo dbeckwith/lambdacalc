@@ -31,9 +31,11 @@ export function equiv(e1:Expression, e2:Expression):boolean {
   dbg(e1.toString());
   dbg(e2.toString());
   dbg('bind');
-  e1 = e1.copy().bindAll();
+  e1 = e1.copy();
+  e1.bindAll();
   dbg(e1.toString());
-  e2 = e2.copy().bindAll();
+  e2 = e2.copy();
+  e2.bindAll();
   dbg(e2.toString());
   dbg('normalize');
   e1.alphaNormalize();
@@ -109,21 +111,18 @@ export class Expression {
 
   /**
    * Binds all variables in this expression tree to their target functions.
-   * @returns {Expression} the new expression, as bound as possible
    */
-  bindAll():Expression {
-    var expr:Expression = this;
+  bindAll():void {
     /*expr.walk(null, (f:Function, depth:number) => {
      f.id = depth;
      return true;
      }, null);*/
-    expr.walk((v:Variable) => {
+    this.walk((v:Variable) => {
       if (!v.isBound) {
         v.bind(<Function>v.findFirst(Function, (f:Function) => f.arg === v.index));
       }
       return true;
     }, null, null);
-    return expr;
   }
 
   /**
@@ -199,8 +198,10 @@ export class Expression {
 
   /**
    * Converts this expression to a string format.
+   * @param namingDepth the number of function levels down in the expression tree to not use function names (default
+   *   Infinity)
    */
-  toString():string {
+  toString(namingDepth?:number):string {
     throw new Error('toString must be overloaded');
   }
 }
@@ -257,7 +258,7 @@ export class Variable extends Expression {
     }
   }
 
-  toString():string {
+  toString(namingDepth?:number):string {
     return this.isBound ? this.binder.argStr : DEBUG ? '[' + this.index + '*]' : idToName(this.index);
   }
 
@@ -302,7 +303,7 @@ export class Function extends Expression {
   }
 
   get hasPreferredName():boolean {
-    return !!this.preferredName;
+    return !DEBUG && !!this.preferredName;
   }
 
   get argStr():string {
@@ -355,13 +356,20 @@ export class Function extends Expression {
     }
   }
 
-  toString():string {
+  toString(namingDepth?:number):string {
+    if (typeof namingDepth === 'undefined' || namingDepth === null) {
+      namingDepth = Infinity;
+    }
+    if (this.hasPreferredName && namingDepth <= 0) {
+      return this.preferredName;
+    }
     var args:string = '';
     var body:string = '[error]';
     this.walk(null, (f:Function) => {
+      namingDepth--;
       args += f.argStr;
-      if (!(f.body instanceof Function)) {
-        body = f.body.toString();
+      if (!(f.body instanceof Function) || ((<Function>f.body).hasPreferredName && namingDepth <= 0)) {
+        body = f.body.toString(namingDepth);
         return false;
       }
       return true;
@@ -437,7 +445,7 @@ export class Application extends Expression {
     }
   }
 
-  toString():string {
+  toString(namingDepth?:number):string {
     /*
      var paren1 = this.expr1 instanceof Function && !(useNames && (this.expr1.hasName() ||
      (useLatex ? this.expr1.hasLatexName() : false)));
@@ -445,11 +453,13 @@ export class Application extends Expression {
      (useLatex ? this.expr2.hasLatexName() : false)))) || this.expr2 instanceof Application;
      */
     var parens:boolean[] = [
-      this.exprs[0] instanceof Function,
-      this.exprs[1] instanceof Function || this.exprs[1] instanceof Application
+      this.exprs[0] instanceof Function && !((<Function>this.exprs[0]).hasPreferredName && namingDepth <= 0),
+      (this.exprs[1] instanceof Function && !((<Function>this.exprs[1]).hasPreferredName && namingDepth <= 0)) ||
+      this.exprs[1] instanceof Application
     ];
     return _(this.exprs)
-      .map((expr:Expression, i:number) => parens[i] ? '(' + expr.toString() + ')' : expr.toString())
+      .map((expr:Expression, i:number) => parens[i] ? '(' + expr.toString(namingDepth) + ')' :
+                                          expr.toString(namingDepth))
       .reduce((a:string, b:string) => a + ' ' + b);
   }
 

@@ -29,10 +29,6 @@ import lambdacalc = require('../src/lambdacalc');
  test.ifError(value)
  */
 
-// TODO: maybe no typescript for tests??
-// TODO: equiv tests were failing
-// TODO: maybe don't use names in string format yet (breaks first toString() tests)
-
 var expect:Chai.ExpectStatic = chai.expect;
 
 chai.use(function (_chai:any, utils:any):void {
@@ -62,19 +58,42 @@ describe('Expression', ():void => {
       expect(lambdacalc.getStdFunc('2').toString()).to.be.equal('\\fx.f (f x)');
       expect(lambdacalc.getStdFunc('Y').toString()).to.be.equal('\\r.(\\x.r (x x)) (\\x.r (x x))');
 
-      expect(lambda.Function.multiArg([0, 1, 2], null,
-        lambda.Application.multiApp([new lambda.Variable(0), new lambda.Variable(2),
-                                     new lambda.Variable(1)])).bindAll().toString()).to.be.equal('\\xyz.x z y');
+      var f1:lambda.Function = lambda.Function.multiArg([0, 1, 2], null,
+        lambda.Application.multiApp([new lambda.Variable(0), new lambda.Variable(2), new lambda.Variable(1)]));
+      f1.bindAll();
+      expect(f1.toString()).to.be.equal('\\xyz.x z y');
 
-      expect(new lambda.Application(lambdacalc.getStdFunc('Y'),
-        lambdacalc.getStdFunc('0')).reduceOnce().bindAll().toString())
-        .to.be.equal('(\\x.(\\fx.x) (x x)) (\\x.(\\fx.x) (x x))');
+      var e1:lambda.Expression = new lambda.Application(lambdacalc.getStdFunc('Y'),
+        lambdacalc.getStdFunc('0')).reduceOnce();
+      e1.bindAll();
+      expect(e1.toString()).to.be.equal('(\\x.(\\fx.x) (x x)) (\\x.(\\fx.x) (x x))');
     });
 
     it('should be the same for an expression and its copy', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f.copy().bindAll().toString(), name).to.be.equal(f.toString());
+        var e:lambda.Expression = f.copy();
+        e.bindAll();
+        expect(e.toString(), name).to.be.equal(f.toString());
       });
+    });
+
+    it('should use function names at the correct depth', ():void => {
+      expect(lambdacalc.getStdFunc('0').toString()).to.be.equal('\\fx.x');
+      expect(lambdacalc.getStdFunc('0').toString(0)).to.be.equal('0');
+      expect(lambdacalc.getStdFunc('0').toString(1)).to.be.equal('\\fx.x');
+      expect(lambdacalc.getStdFunc('0').toString(10)).to.be.equal('\\fx.x');
+      var f1:lambda.Function = new lambda.Function(0, null, lambdacalc.getStdFunc('0'));
+      f1.bindAll();
+      expect(f1.toString(), 'non-named, no depth').to.be.equal('\\xfx.x');
+      expect(f1.toString(0), 'non-named, depth 0').to.be.equal('\\x.0');
+      expect(f1.toString(1), 'non-named, depth 1').to.be.equal('\\x.0');
+      expect(f1.toString(10), 'non-named, depth 10').to.be.equal('\\xfx.x');
+      var f2:lambda.Function = new lambda.Function(0, null, lambdacalc.getStdFunc('0'), 'BLA');
+      f2.bindAll();
+      expect(f2.toString(), 'named, no depth').to.be.equal('\\xfx.x');
+      expect(f2.toString(0), 'named, depth 0').to.be.equal('BLA');
+      expect(f2.toString(1), 'named, depth 1').to.be.equal('\\x.0');
+      expect(f2.toString(10), 'named, depth 10').to.be.equal('\\xfx.x');
     });
   });
 
@@ -87,7 +106,9 @@ describe('Expression', ():void => {
 
     it('should say that expressions\' copies are equal to themselves', ():void => {
       _.each(lambdacalc.stdFuncs, (f:lambda.Function, name:string) => {
-        expect(f).to.be.exprEqual(f.copy().bindAll());
+        var e:lambda.Expression = f.copy();
+        e.bindAll();
+        expect(f).to.be.exprEqual(e);
       });
     });
   });
