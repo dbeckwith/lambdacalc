@@ -6,7 +6,7 @@ install:
   - npm install -g grunt-cli
   - npm install -g tsd
 before_script:
-  - grunt update
+  - tsd reinstall
 script:
   - npm test
 notifications:
